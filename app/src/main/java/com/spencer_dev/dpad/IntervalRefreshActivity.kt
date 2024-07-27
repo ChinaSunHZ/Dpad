@@ -2,6 +2,7 @@ package com.spencer_dev.dpad
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -14,10 +15,12 @@ import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
 import com.chad.library.adapter.base.BaseQuickAdapter
 import com.chad.library.adapter.base.viewholder.BaseViewHolder
 import com.rubensousa.dpadrecyclerview.DpadRecyclerView
 import com.rubensousa.dpadrecyclerview.DpadViewHolder
+import com.rubensousa.dpadrecyclerview.OnViewHolderSelectedListener
 import com.rubensousa.dpadrecyclerview.spacing.DpadLinearSpacingDecoration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -49,6 +52,18 @@ class IntervalRefreshActivity : AppCompatActivity(R.layout.activity_interval_ref
                 0,
             ),
         )
+        rvList.addOnViewHolderSelectedListener(object : OnViewHolderSelectedListener {
+            override fun onViewHolderSelected(
+                parent: RecyclerView,
+                child: RecyclerView.ViewHolder?,
+                position: Int,
+                subPosition: Int
+            ) {
+                super.onViewHolderSelected(parent, child, position, subPosition)
+                Log.i("Selection", "Position: $position")
+                adapter.selectedItem = adapter.getItemOrNull(position)
+            }
+        })
         // ----------> END
 
         lifecycleScope.launch {
@@ -68,8 +83,10 @@ class IntervalRefreshActivity : AppCompatActivity(R.layout.activity_interval_ref
         adapter.setNewInstance(items)
 
         if (targetSelectedItemsPosition == -1) {
+            adapter.selectedItem = adapter.getItemOrNull(0)
             rvList.setSelectedPosition(0)
         } else {
+            adapter.selectedItem = targetSelectedItem
             rvList.setSelectedPosition(targetSelectedItemsPosition)
         }
     }
@@ -97,6 +114,9 @@ class IntervalRefreshActivity : AppCompatActivity(R.layout.activity_interval_ref
 }
 
 class IntervalRefreshAdapter : BaseQuickAdapter<String, IntervalRefreshHolder>(0) {
+
+    var selectedItem: String? = null
+
     override fun onCreateDefViewHolder(
         parent: ViewGroup,
         viewType: Int,
@@ -111,7 +131,7 @@ class IntervalRefreshAdapter : BaseQuickAdapter<String, IntervalRefreshHolder>(0
         holder: IntervalRefreshHolder,
         item: String,
     ) {
-        holder.onBind(item)
+        holder.onBind(item, item == selectedItem)
     }
 }
 
@@ -125,9 +145,12 @@ class IntervalRefreshHolder(
     private var ivImage: AppCompatImageView = itemView.findViewById(R.id.iv_image)
     private var tvText: AppCompatTextView = itemView.findViewById(R.id.tv_text)
 
+    init {
+        onViewHolderDeselected()
+    }
+
     override fun onViewHolderSelected() {
         super.onViewHolderSelected()
-
         llContainer.updateLayoutParams<ViewGroup.LayoutParams> {
             height = resources.getDimensionPixelSize(R.dimen.dp_60)
         }
@@ -166,7 +189,12 @@ class IntervalRefreshHolder(
         super.onViewHolderDeselected()
     }
 
-    fun onBind(item: String) {
+    fun onBind(item: String, isSelected: Boolean) {
         tvText.text = item
+        if (isSelected) {
+            onViewHolderSelected()
+        } else {
+            onViewHolderDeselected()
+        }
     }
 }
